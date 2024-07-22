@@ -1,0 +1,18 @@
+services:
+  nginx:
+    container_name: nginx
+    image: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./conf.d/:/etc/nginx/conf.d/
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    networks:
+      - custom
+
+networks:
+  custom:
+    name: custom_network
+    external: true
+
