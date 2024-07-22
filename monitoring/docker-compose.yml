@@ -1,0 +1,124 @@
+services:
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+    hostname: rpi-grafana
+    restart: unless-stopped
+    user: "472"
+    networks:
+      - custom
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./grafana/.env
+    volumes:
+      # /!\ To be modified depending on your needs /!\
+      - ./grafana/data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
+      - /etc/letsencrypt/live/subdomain/fullchain.pem:/etc/grafana/grafana.crt
+      - /etc/letsencrypt/live/subdomain/privkey.pem:/etc/grafana/grafana.key
+    depends_on:
+      - prometheus
+      - loki
+
+  cadvisor:
+    container_name: cadvisor
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    hostname: rpi-cadvisor
+    restart: unless-stopped
+    privileged: true
+    networks:
+      - custom
+    expose:
+      - 8080
+    command:
+      - '-housekeeping_interval=15s'
+      - '-docker_only=true'
+      - '-store_container_labels=false'
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+      - /etc/machine-id:/etc/machine-id:ro
+
+  node-exporter:
+    container_name: node-exporter
+    image: prom/node-exporter:latest
+    hostname: rpi-exporter
+    restart: unless-stopped
+    networks:
+      - custom
+    expose:
+      - 9100
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/host
+      - --collector.filesystem.ignored-mount-points
+      - ^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - /:/host:ro,rslave
+
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    hostname: rpi-prometheus
+    restart: unless-stopped
+    user: "nobody"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=1y'
+      # /!\ Uncomment the following line to set a size limit for the Prometheus database /!\
+#      - '--storage.tsdb.retention.size=10GB'
+    networks:
+      - custom
+    expose:
+      - 9090
+    volumes:
+      # /!\ To be modified depending on your needs /!\
+      - ./prometheus/data:/prometheus
+      - ./prometheus:/etc/prometheus/
+    depends_on:
+      - cadvisor
+      - node-exporter
+    links:
+      - cadvisor:cadvisor
+      - node-exporter:node-exporter
+
+  loki:
+    container_name: loki
+    volumes:
+      - ./loki/loki-config.yaml:/mnt/config/loki-config.yaml
+    ports:
+      - 3100:3100
+    image: grafana/loki:3.0.0
+    command: -config.file=/mnt/config/loki-config.yaml
+    networks:
+      - custom
+
+  promtail:
+    container_name: promtail
+    volumes:
+      - ./loki/promtail-config.yaml:/mnt/config/promtail-config.yaml
+      - /var/log:/var/log
+    links:
+      - loki
+    image: grafana/promtail:3.0.0
+    command: -config.file=/mnt/config/promtail-config.yaml
+    networks:
+      - custom
+
+networks:
+  custom:
+    name: custom_network
+    external: true
+
