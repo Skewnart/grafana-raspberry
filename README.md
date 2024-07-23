@@ -33,7 +33,7 @@ docker compose -f certbot/docker-compose.yml run --service-ports --rm certbot ce
 
 *`--standalone`* option will allow certbot to create a standalone webserver (using port 80) just to test and validate subdomain.
 
-Your certificate keys are now available in `/etc/lets-encrypt/live/YOUR-SUBDOMAIN`.
+Your certificate keys are now available in `/etc/letsencrypt/live/YOUR-SUBDOMAIN`.
 
 ### Monitoring
 
@@ -85,7 +85,7 @@ $ curl localhost:3000
 
 <a href="/login">Found</a>.
 
-docker compose -f monitoring/docker-compose.yml down
+$ docker compose -f monitoring/docker-compose.yml down
 ```
 
 Note it down : First time you access the Grafana interface, **username / passord** is **"admin" / "admin"**. You will be asked to change it.
