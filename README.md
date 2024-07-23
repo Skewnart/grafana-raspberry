@@ -28,7 +28,7 @@ These steps will be performed in order :
 In the project directory :
 
 ```bash
-$ docker compose -f certbot/docker-compose.yml run --service-ports --rm certbot certonly --standalone -d YOUR-SUBDOMAIN
+docker compose -f certbot/docker-compose.yml run --service-ports --rm certbot certonly --standalone -d YOUR-SUBDOMAIN
 ```
 
 *`--standalone`* option will allow certbot to create a standalone webserver (using port 80) just to test and validate subdomain.
@@ -40,7 +40,7 @@ Your certificate keys are now available in `/etc/lets-encrypt/live/YOUR-SUBDOMAI
 The monitoring network will be common with Nginx. Because both have separate docker-compose, the network is declared separately.
 
 ```bash
-$ docker network create -d bridge custom_network
+docker network create -d bridge custom_network
 ```
 
 Associated Monitoring docker-compose launches *all the Grafana stack* :
@@ -55,8 +55,8 @@ Associated Monitoring docker-compose launches *all the Grafana stack* :
 Change owner of Prometheus and Grafana directories :
 
 ```bash
-$ sudo chown -R 472:472 monitoring/grafana/ && \
-sudo chown -R 65534:65534 monitoring/prometheus/
+sudo chown -R 472:472 monitoring/grafana/ \
+&& sudo chown -R 65534:65534 monitoring/prometheus/
 ```
 
 Now update your domain in the SSL volumes for Grafana in the associated docker-compose.
@@ -64,7 +64,7 @@ Now update your domain in the SSL volumes for Grafana in the associated docker-c
 In the following command, like in the SSL part, replace **YOUR-SUBDOMAIN** with yours :
 
 ```bash
-$ sed -i "s/subdomain/YOUR-SUBDOMAIN/g" ./monitoring/docker-compose.yml
+sed -i "s/subdomain/YOUR-SUBDOMAIN/g" ./monitoring/docker-compose.yml
 ```
 
 At this time, you can launch associated docker-compose, just not access it through internet.
@@ -72,6 +72,7 @@ At this time, you can launch associated docker-compose, just not access it throu
 
 ```bash
 $ docker compose -f monitoring/docker-compose.yml up -d
+
 [+] Running 6/6
  ✔ Container node-exporter  Started		1.3s
  ✔ Container loki           Started		1.0s
@@ -81,9 +82,10 @@ $ docker compose -f monitoring/docker-compose.yml up -d
  ✔ Container grafana        Started		1.8s
 
 $ curl localhost:3000
+
 <a href="/login">Found</a>.
 
-$ docker compose -f monitoring/docker-compose.yml down
+docker compose -f monitoring/docker-compose.yml down
 ```
 
 Note it down : First time you access the Grafana interface, **username / passord** is **"admin" / "admin"**. You will be asked to change it.
@@ -95,29 +97,37 @@ Because the network is the same between docker-compose, you don't have to recrea
 For the same reason as before, change subdomain by yours (here **YOUR-SUBDOMAIN**) in the *Grafana Nginx* configuration file :
 
 ```bash
-$ sed -i "s/subdomain/YOUR-SUBDOMAIN/g" ./nginx/conf.d/grafana.conf
+sed -i "s/subdomain/YOUR-SUBDOMAIN/g" ./nginx/conf.d/grafana.conf
 ```
 
 The configuration file is designed to respond to **80** and **443** ports :
 
-- Port 80 : redirect to 443 port
-- Port 443 : linked to SSL certificate, redirect to Grafana port 3000 upstream.
+- **Port 80 :** redirect to 443 port
+- **Port 443 :** linked to SSL certificate, redirect to Grafana port 3000 upstream.
 
 With network still up, launch both docker compose :
 
 ```bash
-$ docker compose -f ./monitoring/docker-compose.yml up -d \
+docker compose -f ./monitoring/docker-compose.yml up -d \
 && docker compose -f ./nginx/docker-compose.yml up -d
 ```
 
-You are ready now, go to your favorite internet browser and access to your brand new on-premise Grafana.
+You are ready now, go to your **favorite internet browser** and access to your **brand new on-premise Grafana**.
 
 ## The end
+
+To start it :
+
+```bash
+docker network create -d bridge custom_network \
+&& docker compose -f ./monitoring/docker-compose.yml up -d \
+&& docker compose -f ./nginx/docker-compose.yml up -d
+```
 
 To stop it :
 
 ```bash
-$ docker compose -f ./nginx/docker-compose.yml down \
+docker compose -f ./nginx/docker-compose.yml down \
 && docker compose -f ./monitoring/docker-compose.yml down \
 && docker network rm custom_network
 ```
@@ -125,5 +135,5 @@ $ docker compose -f ./nginx/docker-compose.yml down \
 To renew your certificate :
 
 ```bash
-$ docker compose -f ./certbot/docker-compose.yml run --service-ports --rm certbot renew
+docker compose -f ./certbot/docker-compose.yml run --service-ports --rm certbot renew
 ```
