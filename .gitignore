@@ -1,0 +1,12 @@
+certbot/var-log-letsencrypt/*
+
+monitoring/grafana/data/plugins/*
+
+monitoring/loki/promtail-data/
+monitoring/loki/loki-data/*
+
+monitoring/prometheus/data/*
+
+mosquitto/conf/pwfile*
+mosquitto/data/*
+
