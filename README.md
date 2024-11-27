@@ -4,17 +4,17 @@
 
 **Home Grafana** (*Grafana / Loki*) implementation for **Raspberry** using **Reverse Proxy** and **HTTPS** to access it through internet.
 
-It includes **basic dashboards** to monitor the Raspberry itself and containers (*Grafana / Prometheus / NodeExporter / cAdvisor*) allowing you to customize everything. And also dashboards for sytem logging (*Promtail / Loki*) with default configuration. (Behind need is to log IOT workflows and create some alerts)
+It includes **basic dashboards** to monitor the Raspberry itself and containers (*Grafana / Prometheus / NodeExporter / cAdvisor*) allowing you to customize everything. And also dashboards for sytem logging (*Promtail / Loki*) with default configuration. (Behind need is to log IOT workflows and create some alerts, but these will be in another repo)
 
 **Nginx** is separated in order to use yours if it is already (or later) configured for other web servers. You might want to use Nginx separately from the Grafana stack.
 
 Finally, **certbot** is also separated because it's only used to *add* or *renew* certificate, and then stops.
 
-## Steps
+## Installation steps
 
 These steps will be performed in order : 
 
-1. **SSL Certificate** (router configuration and SSL (outer server configuration))
+1. **SSL Certificate** (router configuration and SSL (outside server configuration))
 2. **Monitoring (Grafana stack)** (inside server configuration)
 3. **Nginx (Reverse proxy)** (link between inside and outside)
 
@@ -28,7 +28,7 @@ These steps will be performed in order :
 In the project directory :
 
 ```bash
-docker compose -f certbot/docker-compose.yml run --service-ports --rm certbot certonly --standalone -d YOUR-SUBDOMAIN
+cd certbot && ./add-domain && cd -
 ```
 
 *`--standalone`* option will allow certbot to create a standalone webserver (using port 80) just to test and validate subdomain.
@@ -37,10 +37,10 @@ Your certificate keys are now available in `/etc/letsencrypt/live/YOUR-SUBDOMAIN
 
 ### Monitoring
 
-The monitoring network will be common with Nginx. Because both have separate docker-compose, the network is declared separately.
+The monitoring network will be in common with Nginx. Because both have separate docker-compose, the network is declared separately.
 
 ```bash
-docker network create -d bridge custom_network
+./start-network
 ```
 
 Associated Monitoring docker-compose launches *all the Grafana stack* :
@@ -56,7 +56,8 @@ Change owner of Prometheus and Grafana directories :
 
 ```bash
 sudo chown -R 472:472 monitoring/grafana/ \
-&& sudo chown -R 65534:65534 monitoring/prometheus/
+&& sudo chown -R 65534:65534 monitoring/prometheus/ \
+&& sudo chown -R 10001:10001 monitoring/loki/loki-data/
 ```
 
 Now update your domain in the SSL volumes for Grafana in the associated docker-compose.
@@ -108,32 +109,19 @@ The configuration file is designed to respond to **80** and **443** ports :
 With network still up, launch both docker compose :
 
 ```bash
-docker compose -f ./monitoring/docker-compose.yml up -d \
-&& docker compose -f ./nginx/docker-compose.yml up -d
+./start-containers
 ```
 
 You are ready now, go to your **favorite internet browser** and access to your **brand new on-premise Grafana**.
 
 ## The end
 
-To start it :
+To start it : `./start`
 
-```bash
-docker network create -d bridge custom_network \
-&& docker compose -f ./monitoring/docker-compose.yml up -d \
-&& docker compose -f ./nginx/docker-compose.yml up -d
-```
-
-To stop it :
-
-```bash
-docker compose -f ./nginx/docker-compose.yml down \
-&& docker compose -f ./monitoring/docker-compose.yml down \
-&& docker network rm custom_network
-```
+To stop it : `./stop`
 
 To renew your certificate :
 
 ```bash
-docker compose -f ./certbot/docker-compose.yml run --service-ports --rm certbot renew
+cd certbot && ./renew && cd -
 ```
